@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOLTWRATH — Agent Command Center</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #06060b;
+    --bg-card: #0c0c14;
+    --bg-card-hover: #12121c;
+    --border: #1a1a2a;
+    --red: #ff2244;
+    --red-dim: #aa1133;
+    --orange: #ff6600;
+    --cyan: #00e5ff;
+    --green: #00ff88;
+    --yellow: #ffaa00;
+    --text: #e8e8f0;
+    --text-dim: #555570;
+    --glow-red: 0 0 30px rgba(255,34,68,0.35);
+    --glow-orange: 0 0 20px rgba(255,102,0,0.3);
+    --glow-cyan: 0 0 20px rgba(0,229,255,0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(ellipse at 20% 0%, rgba(255,34,68,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(255,102,0,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      transparent, transparent 2px,
+      rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .container { max-width: 1440px; margin: 0 auto; padding: 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+
+  .logo-group { display: flex; align-items: center; gap: 16px; }
+
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: var(--glow-red);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: var(--glow-red); }
+    50% { box-shadow: 0 0 40px rgba(255,34,68,0.5); }
+  }
+
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    background: linear-gradient(135deg, var(--red) 0%, var(--orange) 50%, var(--yellow) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .header-right { display: flex; gap: 12px; align-items: center; }
+
+  .status-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:0.3 } }
+
+  .version-tag {
+    font-size: 10px; padding: 4px 10px;
+    border: 1px solid var(--border); border-radius: 3px;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card:nth-child(1):hover { border-color: var(--red); box-shadow: var(--glow-red); }
+  .stat-card:nth-child(2):hover { border-color: var(--orange); box-shadow: var(--glow-orange); }
+  .stat-card:nth-child(3):hover { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
+  .stat-card:nth-child(4):hover { border-color: var(--green); }
+
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--orange), transparent); }
+  .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+  .stat-card:nth-child(4)::before { background: linear-gradient(90deg, var(--green), transparent); }
+
+  .stat-label {
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 2.5px; color: var(--text-dim); margin-bottom: 8px;
+  }
+
+  .stat-value { font-family: 'Orbitron', sans-serif; font-size: 30px; font-weight: 700; }
+  .stat-card:nth-child(1) .stat-value { color: var(--red); }
+  .stat-card:nth-child(2) .stat-value { color: var(--orange); }
+  .stat-card:nth-child(3) .stat-value { color: var(--cyan); }
+  .stat-card:nth-child(4) .stat-value { color: var(--green); }
+
+  .stat-delta { font-size: 10px; color: var(--green); margin-top: 4px; }
+
+  /* Main Layout */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 3px;
+    color: var(--text-dim);
+  }
+
+  .panel-header .count {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; color: var(--red);
+    padding: 2px 8px; border: 1px solid var(--red-dim);
+    border-radius: 3px;
+  }
+
+  .panel-body { padding: 14px 18px; }
+
+  /* Agent List */
+  .agent-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .agent-item:hover {
+    border-color: var(--red);
+    background: var(--bg-card-hover);
+  }
+
+  .agent-item:hover::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--red); border-radius: 6px 0 0 6px;
+  }
+
+  .agent-info { display: flex; align-items: center; gap: 12px; }
+
+  .agent-avatar {
+    width: 36px; height: 36px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .agent-name { font-weight: 600; font-size: 13px; }
+  .agent-role { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.5px; }
+
+  .agent-status {
+    font-size: 10px; padding: 4px 10px;
+    border-radius: 3px; font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .agent-status.idle { color: var(--text-dim); border: 1px solid #2a2a3a; }
+  .agent-status.running { color: var(--orange); border: 1px solid var(--orange); box-shadow: var(--glow-orange); animation: blink 1.5s infinite; }
+  .agent-status.completed { color: var(--green); border: 1px solid var(--green); }
+  .agent-status.error { color: var(--red); border: 1px solid var(--red); }
+
+  /* Event Log */
+  .event-log { max-height: 380px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1a1a2a transparent; }
+
+  .event-item {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(26,26,42,0.5);
+    font-size: 11px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+
+  .event-time { color: var(--text-dim); white-space: nowrap; min-width: 65px; font-size: 10px; }
+
+  .event-type {
+    padding: 2px 8px; border-radius: 3px;
+    font-size: 9px; font-weight: 700;
+    min-width: 70px; text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .event-type.start { background: rgba(255,102,0,0.15); color: var(--orange); }
+  .event-type.tool { background: rgba(0,229,255,0.12); color: var(--cyan); }
+  .event-type.complete { background: rgba(0,255,136,0.12); color: var(--green); }
+  .event-type.error { background: rgba(255,34,68,0.15); color: var(--red); }
+  .event-type.handoff { background: rgba(255,170,0,0.12); color: var(--yellow); }
+
+  .event-msg { color: #aaaac0; flex: 1; font-size: 11px; }
+
+  /* Prompt */
+  .prompt-section { grid-column: 1 / -1; margin-top: 8px; }
+
+  .prompt-wrapper {
+    display: flex; gap: 12px;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .prompt-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .prompt-input:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 15px rgba(255,34,68,0.15);
+  }
+
+  .prompt-input::placeholder { color: #333348; }
+
+  .btn-execute {
+    padding: 12px 28px;
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    box-shadow: var(--glow-red);
+  }
+
+  .btn-execute:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 40px rgba(255,34,68,0.4);
+  }
+
+  .btn-execute:active { transform: translateY(0); }
+
+  /* Strategy Selector */
+  .strategy-select {
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .strategy-select:focus { border-color: var(--orange); }
+
+  /* Footer */
+  .footer {
+    margin-top: 32px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--red); }
+
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+    .logo { font-size: 20px; letter-spacing: 3px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo-group">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo">MOLTWRATH</div>
+        <div class="logo-sub">Agent Command Center</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="version-tag">v0.1.0</div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        SYSTEM ACTIVE
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active Agents</div>
+      <div class="stat-value" id="s-agents">0</div>
+      <div class="stat-delta">↑ 2 since last hour</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tasks Executed</div>
+      <div class="stat-value" id="s-tasks">0</div>
+      <div class="stat-delta">↑ 12 today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tokens Burned</div>
+      <div class="stat-value" id="s-tokens">0</div>
+      <div class="stat-delta">~$4.28 cost</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Latency</div>
+      <div class="stat-value" id="s-latency">0<span style="font-size:13px;color:var(--text-dim)">ms</span></div>
+      <div class="stat-delta">↓ 18% improvement</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>⚡ Agent Registry</span>
+        <span class="count">5</span>
+      </div>
+      <div class="panel-body" id="agents-list">
+        <div class="agent-item">
+          <div class="agent-info">
+            <div class="agent-avatar" style="background:rgba(255,34,68,0.1);border-color:var(--red-dim)">🔍</div>
+            <div>
+              <div class="agent-name">researcher</div>
+              <div class="agent-role">Research & Intelligence</div>
+            </div>
+          </div>
+          <div class="agent-status running">RUNNING</div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-info">
+            <div class="agent-avatar" style="background:rgba(255,102,0,0.1);border-color:#553300">📊</div>
+            <div>
+              <div class="agent-name">analyst</div>
+              <div class="agent-role">Data Analysis</div>
+            </div>
+          </div>
+          <div class="agent-status idle">IDLE</div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-info">
+            <div class="agent-avatar" style="background:rgba(0,229,255,0.08);border-color:#003344">✍️</div>
+            <div>
+              <div class="agent-name">writer</div>
+              <div class="agent-role">Content Generation</div>
+            </div>
+          </div>
+          <div class="agent-status completed">DONE</div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-info">
+            <div class="agent-avatar" style="background:rgba(0,255,136,0.08);border-color:#003322">💻</div>
+            <div>
+              <div class="agent-name">coder</div>
+              <div class="agent-role">Code Execution</div>
+            </div>
+          </div>
+          <div class="agent-status idle">IDLE</div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-info">
+            <div class="agent-avatar" style="background:rgba(255,170,0,0.1);border-color:#443300">🎯</div>
+            <div>
+              <div class="agent-name">director</div>
+              <div class="agent-role">Swarm Coordinator</div>
+            </div>
+          </div>
+          <div class="agent-status idle">STANDBY</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>📡 Live Feed</span>
+        <span class="count" style="color:var(--green);border-color:var(--green)">LIVE</span>
+      </div>
+      <div class="panel-body">
+        <div class="event-log" id="event-log">
+          <div class="event-item">
+            <span class="event-time">12:34:01</span>
+            <span class="event-type start">START</span>
+            <span class="event-msg">researcher → Scanning Solana DeFi protocols</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:03</span>
+            <span class="event-type tool">TOOL</span>
+            <span class="event-msg">researcher → get_price(SOL) → $142.50</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:04</span>
+            <span class="event-type tool">TOOL</span>
+            <span class="event-msg">researcher → search("Solana TVL ranking")</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:07</span>
+            <span class="event-type complete">DONE</span>
+            <span class="event-msg">researcher → 1,247 tokens · 6.2s</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:08</span>
+            <span class="event-type handoff">HANDOFF</span>
+            <span class="event-msg">swarm → Routing to analyst (round_robin)</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:08</span>
+            <span class="event-type start">START</span>
+            <span class="event-msg">analyst → Processing research output</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:14</span>
+            <span class="event-type complete">DONE</span>
+            <span class="event-msg">analyst → 892 tokens · 5.8s</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">12:34:15</span>
+            <span class="event-type handoff">HANDOFF</span>
+            <span class="event-msg">swarm → Routing to writer (round_robin)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prompt-section">
+      <div class="prompt-wrapper">
+        <select class="strategy-select" id="strategy">
+          <option value="round_robin">⟳ Round Robin</option>
+          <option value="parallel">⫸ Parallel</option>
+          <option value="auction">⚖ Auction</option>
+          <option value="director">👁 Director</option>
+        </select>
+        <input class="prompt-input" placeholder="Enter task for the swarm..." id="prompt-input">
+        <button class="btn-execute" onclick="sendTask()">EXECUTE</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>MOLTWRATH v0.1.0 · Python + FastAPI · Multi-Agent Orchestration</span>
+    <div class="footer-links">
+      <a href="/docs">API Docs</a>
+      <a href="/health">Health</a>
+      <a href="https://github.com">GitHub</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  let ws = null;
+
+  function connectWS() {
+    try {
+      ws = new WebSocket('ws://localhost:8000/ws/events');
+      ws.onmessage = (e) => addEvent(JSON.parse(e.data));
+      ws.onclose = () => setTimeout(connectWS, 3000);
+    } catch(e) { setTimeout(connectWS, 3000); }
+  }
+
+  function addEvent(event) {
+    const log = document.getElementById('event-log');
+    const time = new Date().toLocaleTimeString('en-US',{hour12:false});
+    const t = event.type||'';
+    const cls = t.includes('start')?'start':t.includes('tool')?'tool':t.includes('complete')?'complete':t.includes('handoff')?'handoff':'error';
+    const label = t.split('.')[1]?.toUpperCase()||'EVENT';
+    log.innerHTML += `<div class="event-item"><span class="event-time">${time}</span><span class="event-type ${cls}">${label}</span><span class="event-msg">${event.agent_name} → ${JSON.stringify(event.data).slice(0,80)}</span></div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function sendTask() {
+    const input = document.getElementById('prompt-input');
+    const prompt = input.value.trim();
+    if(!prompt) return;
+    addEvent({type:'task.submit',agent_name:'user',data:{prompt:prompt.slice(0,80)}});
+    input.value='';
+  }
+
+  document.getElementById('prompt-input').addEventListener('keydown',(e)=>{if(e.key==='Enter')sendTask()});
+  connectWS();
+
+  // Animate stats
+  setTimeout(()=>{
+    const targets={agents:5,tasks:47,tokens:18420,latency:342};
+    Object.entries(targets).forEach(([k,target])=>{
+      const el=document.getElementById(`s-${k}`);
+      let cur=0;const step=Math.ceil(target/25);
+      const iv=setInterval(()=>{
+        cur=Math.min(cur+step,target);
+        el.textContent=k==='tokens'?cur.toLocaleString():cur;
+        if(k==='latency')el.innerHTML=cur+'<span style="font-size:13px;color:var(--text-dim)">ms</span>';
+        if(cur>=target)clearInterval(iv);
+      },35);
+    });
+  },200);
+</script>
+</body>
+</html>
